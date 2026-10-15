@@ -3,9 +3,11 @@ package com.example.lexstudy.ui.theme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,14 +17,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.example.lexstudy.model.FormularioModel
 import com.example.lexstudy.viewmodel.FormularioViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun Formulario(viewModel: FormularioViewModel) {
 
     var abrirModal by remember { mutableStateOf(false) }
+    var cargando by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -57,15 +66,30 @@ fun Formulario(viewModel: FormularioViewModel) {
         Text("Acepta los términos")
 
         Button(
-            enabled = viewModel.verificarFormulario(),
+            enabled = viewModel.verificarFormulario() && !cargando,
             onClick = {
-                if(viewModel.verificarFormulario()) {
-                    abrirModal = true
+                cargando = true
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(2000)
+                    cargando = false
+                    if(viewModel.verificarFormulario()) {
+                        abrirModal = true
+                    }
                 }
-            }
+            },
+
         ) {
-            Text("Enviar")
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+            } else {
+                Text("Enviar")
+            }
         }
+
 
         if (abrirModal) {
             AlertDialog(
