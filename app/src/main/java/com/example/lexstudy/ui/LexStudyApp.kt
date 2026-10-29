@@ -15,24 +15,28 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.lexstudy.model.Apunte
+import com.example.lexstudy.model.Ley
 import com.example.lexstudy.model.MapaConceptual
 import com.example.lexstudy.model.Usuario
 import com.example.lexstudy.repository.AuthRepository
+import com.example.lexstudy.repository.LeyesDemo
+import com.example.lexstudy.ui.theme.LexStudyTheme
 
 @Composable
 fun LexStudyApp() {
     val cuentas = remember { mutableStateListOf<Usuario>() }
     var pantallaAcceso by rememberSaveable { mutableStateOf("login") }
     var usuarioActivo by remember { mutableStateOf<Usuario?>(null) }
-    var seccion by rememberSaveable { mutableStateOf("inicio") }
+    var seccion by rememberSaveable { mutableStateOf("consultar") }
+    var leySeleccionada by remember { mutableStateOf<Ley>(LeyesDemo.normas.first()) }
     val apuntes = remember { mutableStateListOf<Apunte>() }
     val mapas = remember { mutableStateListOf<MapaConceptual>() }
     var fotoPerfil by remember { mutableStateOf<Bitmap?>(null) }
+
     val cerrarSesion: () -> Unit = {
         usuarioActivo = null
         pantallaAcceso = "login"
-        seccion = "inicio"
-        apuntes.clear()
+        seccion = "consultar"
         mapas.clear()
         fotoPerfil = null
     }
@@ -41,29 +45,51 @@ fun LexStudyApp() {
         if (pantallaAcceso == "registro") {
             RegistroScreen(
                 onRegistrar = { nombre, correo, clave ->
-                    if (cuentas.any { it.correo.equals(correo.trim(), ignoreCase = true) }) "Ese correo ya está registrado."
-                    else { cuentas.add(AuthRepository.crearUsuario(nombre, correo, clave)); null }
+                    if (cuentas.any { it.correo.equals(correo.trim(), ignoreCase = true) }) {
+                        "Ese correo ya está registrado."
+                    } else {
+                        cuentas.add(AuthRepository.crearUsuario(nombre, correo, clave))
+                        null
+                    }
                 },
                 onIrALogin = { pantallaAcceso = "login" }
             )
         } else {
             LoginScreen(
                 onLogin = { correo, clave -> AuthRepository.autenticar(cuentas, correo, clave) },
-                onLoginCorrecto = { usuario -> usuarioActivo = usuario; seccion = "inicio" },
+                onLoginCorrecto = { usuario -> usuarioActivo = usuario; seccion = "consultar" },
                 onIrARegistro = { pantallaAcceso = "registro" }
             )
         }
         return
     }
 
+    val usuario = usuarioActivo!!
+    val apuntesUsuario = apuntes.filter { it.usuarioCorreo.equals(usuario.correo, ignoreCase = true) }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
-                listOf("inicio" to "Inicio", "apuntes" to "Apuntes", "mapas" to "Mapas", "perfil" to "Perfil").forEach { (ruta, etiqueta) ->
+                listOf(
+                    "consultar" to "Consultar",
+                    "estudiar" to "Estudiar",
+                    "mapas" to "Mapas",
+                    "perfil" to "Perfil"
+                ).forEach { (ruta, etiqueta) ->
+                    val seleccionado = seccion == ruta || (seccion == "detalle_norma" && ruta == "estudiar")
                     NavigationBarItem(
-                        selected = seccion == ruta,
+                        selected = seleccionado,
                         onClick = { seccion = ruta },
-                        icon = { Text(when (ruta) { "inicio" -> "⌂"; "apuntes" -> "▤"; "mapas" -> "◇"; else -> "○" }) },
+                        icon = {
+                            Text(
+                                when (ruta) {
+                                    "consultar" -> "⌕"
+                                    "estudiar" -> "▤"
+                                    "mapas" -> "◇"
+                                    else -> "○"
+                                }
+                            )
+                        },
                         label = { Text(etiqueta) }
                     )
                 }
@@ -71,22 +97,43 @@ fun LexStudyApp() {
         }
     ) { padding ->
         when (seccion) {
-            "inicio" -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
-            "apuntes" -> ApuntesScreen(apuntes = apuntes, onGuardar = { apuntes.add(it) }, modifier = Modifier.padding(padding))
-            "mapas" -> MapasConceptualesScreen(mapas = mapas, onGuardar = { mapas.add(it) }, modifier = Modifier.padding(padding))
+            "consultar" -> ConsultarNormasScreen(
+                onAbrirNorma = { ley ->
+                    leySeleccionada = ley
+                    seccion = "detalle_norma"
+                },
+                modifier = Modifier.padding(padding)
+            )
+            "estudiar", "detalle_norma" -> EstudiarOrganizarScreen(
+                usuarioCorreo = usuario.correo,
+                ley = leySeleccionada,
+                apuntes = apuntesUsuario.filter { it.leyId == leySeleccionada.id },
+                onGuardar = { apunte ->
+                    val indice = apuntes.indexOfFirst { it.id == apunte.id }
+                    if (indice >= 0) apuntes[indice] = apunte else apuntes.add(apunte)
+                },
+                onEliminar = { apunte -> apuntes.removeAll { it.id == apunte.id } },
+                onIrAConsultar = { seccion = "consultar" },
+                modifier = Modifier.padding(padding)
+            )
+            "mapas" -> MapasConceptualesScreen(
+                mapas = mapas,
+                onGuardar = { mapas.add(it) },
+                modifier = Modifier.padding(padding)
+            )
             "perfil" -> PerfilScreen(
-                usuario = usuarioActivo!!,
+                usuario = usuario,
                 fotoPerfil = fotoPerfil,
                 onFotoTomada = { fotoPerfil = it },
                 onCambiarClave = { claveActual, claveNueva, confirmacion ->
-                    val usuario = usuarioActivo!!
+                    val cuenta = usuarioActivo!!
                     when {
-                        !AuthRepository.claveCorrecta(usuario, claveActual) -> "La contraseña actual no es correcta."
+                        !AuthRepository.claveCorrecta(cuenta, claveActual) -> "La contraseña actual no es correcta."
                         claveNueva.length < 6 -> "La nueva contraseña debe tener al menos 6 caracteres."
                         claveNueva != confirmacion -> "Las contraseñas nuevas no coinciden."
                         else -> {
-                            val actualizado = AuthRepository.cambiarClave(usuario, claveNueva)
-                            val indice = cuentas.indexOfFirst { it.correo.equals(usuario.correo, ignoreCase = true) }
+                            val actualizado = AuthRepository.cambiarClave(cuenta, claveNueva)
+                            val indice = cuentas.indexOfFirst { it.correo.equals(cuenta.correo, ignoreCase = true) }
                             if (indice >= 0) cuentas[indice] = actualizado
                             usuarioActivo = actualizado
                             null
@@ -96,7 +143,10 @@ fun LexStudyApp() {
                 onCerrarSesion = cerrarSesion,
                 modifier = Modifier.padding(padding)
             )
-            else -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
+            else -> ConsultarNormasScreen(
+                onAbrirNorma = { ley -> leySeleccionada = ley; seccion = "detalle_norma" },
+                modifier = Modifier.padding(padding)
+            )
         }
     }
 }
