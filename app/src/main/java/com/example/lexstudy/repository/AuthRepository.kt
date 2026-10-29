@@ -4,7 +4,6 @@ import com.example.lexstudy.model.Usuario
 import java.security.MessageDigest
 import java.util.UUID
 
-/** Autenticación local solo para estos prototipos; no sustituye un backend real. */
 object AuthRepository {
     fun crearUsuario(nombre: String, correo: String, clave: String): Usuario {
         val salt = UUID.randomUUID().toString()
