@@ -2,10 +2,9 @@ package com.example.lexstudy.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val VerdePino = Color(0xFF1B4332)
+val VerdeMedio = Color(0xFF2D6A4F)
+val VerdeClaro = Color(0xFFEAF3EC)
+val Marfil = Color(0xFFF6F4EF)
+val TextoSecundario = Color(0xFF647067)
+val DoradoSuave = Color(0xFFD4A75B)
