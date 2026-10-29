@@ -27,12 +27,14 @@ fun LexStudyApp() {
     var seccion by rememberSaveable { mutableStateOf("inicio") }
     val apuntes = remember { mutableStateListOf<Apunte>() }
     val mapas = remember { mutableStateListOf<MapaConceptual>() }
+    var fotoPerfil by remember { mutableStateOf<Bitmap?>(null) }
     val cerrarSesion: () -> Unit = {
         usuarioActivo = null
         pantallaAcceso = "login"
         seccion = "inicio"
         apuntes.clear()
         mapas.clear()
+        fotoPerfil = null
     }
 
     if (usuarioActivo == null) {
@@ -57,7 +59,7 @@ fun LexStudyApp() {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                listOf("inicio" to "Inicio", "apuntes" to "Apuntes", "mapas" to "Mapas").forEach { (ruta, etiqueta) ->
+                listOf("inicio" to "Inicio", "apuntes" to "Apuntes", "mapas" to "Mapas", "perfil" to "Perfil").forEach { (ruta, etiqueta) ->
                     NavigationBarItem(
                         selected = seccion == ruta,
                         onClick = { seccion = ruta },
@@ -72,6 +74,28 @@ fun LexStudyApp() {
             "inicio" -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
             "apuntes" -> ApuntesScreen(apuntes = apuntes, onGuardar = { apuntes.add(it) }, modifier = Modifier.padding(padding))
             "mapas" -> MapasConceptualesScreen(mapas = mapas, onGuardar = { mapas.add(it) }, modifier = Modifier.padding(padding))
+            "perfil" -> PerfilScreen(
+                usuario = usuarioActivo!!,
+                fotoPerfil = fotoPerfil,
+                onFotoTomada = { fotoPerfil = it },
+                onCambiarClave = { claveActual, claveNueva, confirmacion ->
+                    val usuario = usuarioActivo!!
+                    when {
+                        !AuthRepository.claveCorrecta(usuario, claveActual) -> "La contraseña actual no es correcta."
+                        claveNueva.length < 6 -> "La nueva contraseña debe tener al menos 6 caracteres."
+                        claveNueva != confirmacion -> "Las contraseñas nuevas no coinciden."
+                        else -> {
+                            val actualizado = AuthRepository.cambiarClave(usuario, claveNueva)
+                            val indice = cuentas.indexOfFirst { it.correo.equals(usuario.correo, ignoreCase = true) }
+                            if (indice >= 0) cuentas[indice] = actualizado
+                            usuarioActivo = actualizado
+                            null
+                        }
+                    }
+                },
+                onCerrarSesion = cerrarSesion,
+                modifier = Modifier.padding(padding)
+            )
             else -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
         }
     }
