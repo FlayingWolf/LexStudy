@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import com.example.lexstudy.model.Apunte
 import com.example.lexstudy.model.Usuario
 import com.example.lexstudy.repository.AuthRepository
 
@@ -22,10 +24,12 @@ fun LexStudyApp() {
     var pantallaAcceso by rememberSaveable { mutableStateOf("login") }
     var usuarioActivo by remember { mutableStateOf<Usuario?>(null) }
     var seccion by rememberSaveable { mutableStateOf("inicio") }
+    val apuntes = remember { mutableStateListOf<Apunte>() }
     val cerrarSesion: () -> Unit = {
         usuarioActivo = null
         pantallaAcceso = "login"
         seccion = "inicio"
+        apuntes.clear()
     }
 
     if (usuarioActivo == null) {
@@ -47,5 +51,24 @@ fun LexStudyApp() {
         return
     }
 
-    InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion)
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                listOf("inicio" to "Inicio", "apuntes" to "Apuntes").forEach { (ruta, etiqueta) ->
+                    NavigationBarItem(
+                        selected = seccion == ruta,
+                        onClick = { seccion = ruta },
+                        icon = { Text(when (ruta) { "inicio" -> "⌂"; "apuntes" -> "▤"; "mapas" -> "◇"; else -> "○" }) },
+                        label = { Text(etiqueta) }
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        when (seccion) {
+            "inicio" -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
+            "apuntes" -> ApuntesScreen(apuntes = apuntes, onGuardar = { apuntes.add(it) }, modifier = Modifier.padding(padding))
+            else -> InicioScreen(usuarioActivo!!, onCerrarSesion = cerrarSesion, modifier = Modifier.padding(padding))
+        }
+    }
 }
