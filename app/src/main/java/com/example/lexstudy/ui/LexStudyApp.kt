@@ -119,6 +119,7 @@ fun LexStudyApp() {
             "mapas" -> MapasConceptualesScreen(
                 mapas = mapas,
                 onGuardar = { mapas.add(it) },
+                onEliminar = { mapa -> mapas.removeAll { it.id == mapa.id } },
                 modifier = Modifier.padding(padding)
             )
             "perfil" -> PerfilScreen(

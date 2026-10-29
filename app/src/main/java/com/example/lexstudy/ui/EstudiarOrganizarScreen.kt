@@ -71,6 +71,7 @@ fun EstudiarOrganizarScreen(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (_: Exception) {
+                // El proveedor puede no permitir permisos persistentes en este prototipo.
             }
             archivoPdfUri = uri.toString()
             error = ""
