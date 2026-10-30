@@ -1,11 +1,12 @@
 package com.example.lexstudy.model
 
-import java.util.UUID
-
+/** Mapa conceptual de la etapa 09; no se almacena de forma persistente. */
 data class MapaConceptual(
+    val id: Long = 0,
+    val usuarioId: Long,
     val titulo: String,
     val conceptoCentral: String,
     val conceptoRelacionadoUno: String,
     val conceptoRelacionadoDos: String,
-    val id: String = UUID.randomUUID().toString()
+    val creadoEn: Long = System.currentTimeMillis()
 )

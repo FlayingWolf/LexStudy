@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,39 +27,35 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.lexstudy.model.Apunte
-import com.example.lexstudy.model.Ley
+import com.example.lexstudy.viewmodel.LexStudyViewModel
 
 @Composable
 fun EstudiarOrganizarScreen(
-    usuarioCorreo: String,
-    ley: Ley,
-    apuntes: List<Apunte>,
-    onGuardar: (Apunte) -> Unit,
-    onEliminar: (Apunte) -> Unit,
-    onIrAConsultar: () -> Unit,
-    modifier: Modifier = Modifier
+    usuarioId: Long,
+    viewModel: LexStudyViewModel
 ) {
+    val ley = viewModel.leySeleccionada
     val contexto = LocalContext.current
-    var tamanoTexto by remember(ley.id) { mutableStateOf(16) }
+    var tamanoTexto by remember { mutableStateOf(16) }
     var titulo by remember(ley.id) { mutableStateOf("") }
     var contenido by remember(ley.id) { mutableStateOf("") }
     var archivoPdfUri by remember(ley.id) { mutableStateOf<String?>(null) }
-    var apunteEnEdicionId by remember(ley.id) { mutableStateOf<String?>(null) }
-    var error by remember(ley.id) { mutableStateOf("") }
+    var apunteEnEdicionId by remember(ley.id) { mutableStateOf<Long?>(null) }
     var mostrarResultado by remember { mutableStateOf(false) }
     var mensajeResultado by remember { mutableStateOf("") }
+    var resultadoCorrecto by remember { mutableStateOf(false) }
     var apuntePendienteEliminar by remember { mutableStateOf<Apunte?>(null) }
 
     val selectorPdf = rememberLauncherForActivityResult(
@@ -71,82 +68,88 @@ fun EstudiarOrganizarScreen(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (_: Exception) {
-                // El proveedor puede no permitir permisos persistentes en este prototipo.
             }
             archivoPdfUri = uri.toString()
-            error = ""
         }
     }
 
-    val apuntesDeEstaLey = apuntes.filter { it.leyId == ley.id }
+    val apuntesDeEstaLey = viewModel.apuntes.filter { it.leyId == ley.id }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(ColoresLexStudy.marfil)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 18.dp, vertical = 18.dp)
     ) {
         Text(
-            text = "Estudiar y organizar",
+            "Estudiar y organizar",
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = ColoresLexStudy.verdePino
         )
+        Spacer(Modifier.height(5.dp))
         Text(
-            text = "Lee la ficha, ajusta el texto y guarda apuntes vinculados a esta norma.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            "Lee la ficha, ajusta el texto y guarda tus apuntes.",
+            color = ColoresLexStudy.textoSecundario,
             fontSize = 13.sp
         )
-        TextButton(onClick = onIrAConsultar) { Text("← Volver a consultar normas") }
+        Spacer(Modifier.height(18.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+            colors = CardDefaults.cardColors(containerColor = ColoresLexStudy.verdeTarjeta)
         ) {
             Column(Modifier.padding(17.dp)) {
-                Text("FICHA DE ESTUDIO", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("FICHA DE ESTUDIO", color = ColoresLexStudy.blanco.copy(alpha = 0.78f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(7.dp))
-                Text(ley.nombre, color = MaterialTheme.colorScheme.onPrimary, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                Text(ley.articulo, color = MaterialTheme.colorScheme.onPrimary, fontSize = 13.sp)
+                Text(ley.nombre, color = ColoresLexStudy.blanco, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                Text(ley.articulo, color = ColoresLexStudy.blanco, fontSize = 13.sp)
                 Spacer(Modifier.height(12.dp))
-                Text(ley.resumen, color = MaterialTheme.colorScheme.onPrimary, fontSize = tamanoTexto.sp, lineHeight = (tamanoTexto + 6).sp)
+                Text(ley.resumen, color = ColoresLexStudy.blanco, fontSize = tamanoTexto.sp, lineHeight = (tamanoTexto + 6).sp)
                 Spacer(Modifier.height(12.dp))
-                Text("Fuente de referencia: ${ley.referenciaOficial}", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f), fontSize = 10.sp)
-                Text(ley.ultimaReferencia, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f), fontSize = 10.sp)
+                Text("Fuente de referencia: ${ley.referenciaOficial}", color = ColoresLexStudy.blanco.copy(alpha = 0.82f), fontSize = 10.sp)
             }
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Text("Tamaño de texto", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Tamaño de texto", color = ColoresLexStudy.textoSecundario, fontSize = 12.sp)
             TextButton(onClick = { tamanoTexto = (tamanoTexto - 1).coerceAtLeast(12) }) { Text("A−") }
             TextButton(onClick = { tamanoTexto = (tamanoTexto + 1).coerceAtMost(24) }) { Text("A+") }
         }
 
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = if (apunteEnEdicionId == null) "Crear apunte" else "Editar apunte",
-            color = MaterialTheme.colorScheme.primary,
+            if (apunteEnEdicionId == null) "Crear apunte" else "Editar apunte",
+            color = ColoresLexStudy.verdePino,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold
         )
+        Spacer(Modifier.height(10.dp))
         OutlinedTextField(
             value = titulo,
-            onValueChange = { titulo = it; error = "" },
+            onValueChange = { titulo = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text("Título del apunte") },
             colors = coloresCamposEstudio()
         )
+        Spacer(Modifier.height(9.dp))
         OutlinedTextField(
             value = contenido,
-            onValueChange = { contenido = it; error = "" },
+            onValueChange = { contenido = it },
             modifier = Modifier.fillMaxWidth().height(130.dp),
             label = { Text("Tus notas de estudio") },
             minLines = 4,
             colors = coloresCamposEstudio()
         )
+        Spacer(Modifier.height(9.dp))
         OutlinedButton(
             onClick = { selectorPdf.launch(arrayOf("application/pdf")) },
             modifier = Modifier.fillMaxWidth()
@@ -155,84 +158,77 @@ fun EstudiarOrganizarScreen(
         }
         if (archivoPdfUri != null) {
             Text(
-                text = "Documento adjunto: ${archivoPdfUri!!.substringAfterLast('/')}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Documento adjunto: ${archivoPdfUri!!.substringAfterLast('/')}",
+                color = ColoresLexStudy.textoSecundario,
                 fontSize = 10.sp
             )
         }
-        if (error.isNotBlank()) {
-            Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        }
+        Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
-                when {
-                    titulo.isBlank() -> error = "El título del apunte es obligatorio."
-                    contenido.isBlank() -> error = "Escribe el contenido del apunte."
-                    else -> {
-                        val existente = apuntesDeEstaLey.firstOrNull { it.id == apunteEnEdicionId }
-                        onGuardar(
-                            Apunte(
-                                id = existente?.id ?: apunteEnEdicionId ?: java.util.UUID.randomUUID().toString(),
-                                usuarioCorreo = usuarioCorreo,
-                                leyId = ley.id,
-                                nombreLey = ley.nombre,
-                                titulo = titulo.trim(),
-                                contenido = contenido.trim(),
-                                archivoPdfUri = archivoPdfUri,
-                                actualizadoEn = System.currentTimeMillis()
-                            )
-                        )
+                viewModel.guardarApunte(
+                    usuarioId = usuarioId,
+                    titulo = titulo,
+                    contenido = contenido,
+                    archivoPdfUri = archivoPdfUri,
+                    apunteId = apunteEnEdicionId
+                ) { correcto, mensaje ->
+                    resultadoCorrecto = correcto
+                    mensajeResultado = mensaje
+                    mostrarResultado = true
+                    if (correcto) {
                         titulo = ""
                         contenido = ""
                         archivoPdfUri = null
                         apunteEnEdicionId = null
-                        error = ""
-                        mensajeResultado = "El apunte se guardó para ${ley.nombre}."
-                        mostrarResultado = true
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-        ) { Text(if (apunteEnEdicionId == null) "Guardar apunte" else "Guardar cambios") }
-
+            colors = ButtonDefaults.buttonColors(containerColor = ColoresLexStudy.verdePinoMedio)
+        ) {
+            Text(if (apunteEnEdicionId == null) "Guardar apunte" else "Guardar cambios")
+        }
         if (apunteEnEdicionId != null) {
-            TextButton(onClick = {
-                titulo = ""
-                contenido = ""
-                archivoPdfUri = null
-                apunteEnEdicionId = null
-                error = ""
-            }) { Text("Cancelar edición") }
+            TextButton(
+                onClick = {
+                    titulo = ""
+                    contenido = ""
+                    archivoPdfUri = null
+                    apunteEnEdicionId = null
+                },
+                modifier = Modifier.align(Alignment.End)
+            ) { Text("Cancelar edición") }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(24.dp))
         Text(
-            text = "Apuntes guardados para esta norma · ${apuntesDeEstaLey.size}",
-            color = MaterialTheme.colorScheme.primary,
+            "Apuntes guardados · ${apuntesDeEstaLey.size}",
+            color = ColoresLexStudy.verdePino,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold
         )
+        Spacer(Modifier.height(10.dp))
         if (apuntesDeEstaLey.isEmpty()) {
             Text(
-                text = "Todavía no tienes apuntes para esta norma. Crea uno con el formulario anterior.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Todavía no tienes apuntes para esta norma. Tus notas se guardarán en el dispositivo.",
+                color = ColoresLexStudy.textoSecundario,
                 fontSize = 12.sp
             )
         } else {
             apuntesDeEstaLey.forEach { apunte ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 9.dp),
                     shape = RoundedCornerShape(13.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = ColoresLexStudy.blanco)
                 ) {
                     Column(Modifier.padding(13.dp)) {
-                        Text(apunte.titulo, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        Text(apunte.titulo, color = ColoresLexStudy.verdePino, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
-                        Text(apunte.contenido, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Text(apunte.contenido, color = ColoresLexStudy.textoSecundario, fontSize = 12.sp, maxLines = 3)
                         if (apunte.archivoPdfUri != null) {
                             Spacer(Modifier.height(4.dp))
-                            Text("Incluye un PDF adjunto", color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp)
+                            Text("Incluye un PDF adjunto", color = ColoresLexStudy.verdePinoMedio, fontSize = 10.sp)
                         }
                         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                             TextButton(onClick = {
@@ -240,20 +236,17 @@ fun EstudiarOrganizarScreen(
                                 contenido = apunte.contenido
                                 archivoPdfUri = apunte.archivoPdfUri
                                 apunteEnEdicionId = apunte.id
-                                error = ""
                             }) { Text("Editar") }
-                            TextButton(onClick = { apuntePendienteEliminar = apunte }) {
-                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
-                            }
+                            TextButton(onClick = { apuntePendienteEliminar = apunte }) { Text("Eliminar", color = ColoresLexStudy.rojoError) }
                         }
                     }
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(22.dp))
         Text(
-            text = "Aviso: las fichas son resúmenes didácticos de demostración y no reemplazan el texto legal oficial ni constituyen asesoría jurídica.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            "Aviso: la ficha contiene un resumen didáctico de ejemplo, no el texto legal completo ni una actualización oficial.",
+            color = ColoresLexStudy.textoSecundario,
             fontSize = 10.sp,
             lineHeight = 14.sp
         )
@@ -262,9 +255,11 @@ fun EstudiarOrganizarScreen(
     if (mostrarResultado) {
         AlertDialog(
             onDismissRequest = { mostrarResultado = false },
-            title = { Text("Listo") },
+            title = { Text(if (resultadoCorrecto) "Listo" else "No se pudo completar") },
             text = { Text(mensajeResultado) },
-            confirmButton = { TextButton(onClick = { mostrarResultado = false }) { Text("Aceptar") } }
+            confirmButton = {
+                TextButton(onClick = { mostrarResultado = false }) { Text("Aceptar") }
+            }
         )
     }
 
@@ -275,26 +270,32 @@ fun EstudiarOrganizarScreen(
             text = { Text("¿Quieres eliminar ‘${apunte.titulo}’? Esta acción no se puede deshacer.") },
             confirmButton = {
                 TextButton(onClick = {
-                    onEliminar(apunte)
-                    if (apunteEnEdicionId == apunte.id) {
-                        titulo = ""
-                        contenido = ""
-                        archivoPdfUri = null
-                        apunteEnEdicionId = null
+                    viewModel.eliminarApunte(usuarioId, apunte.id) { correcto ->
+                        if (correcto && apunteEnEdicionId == apunte.id) {
+                            titulo = ""
+                            contenido = ""
+                            archivoPdfUri = null
+                            apunteEnEdicionId = null
+                        }
+                        mensajeResultado = if (correcto) "Apunte eliminado." else "No se pudo eliminar el apunte."
+                        resultadoCorrecto = correcto
+                        mostrarResultado = true
                     }
                     apuntePendienteEliminar = null
-                    mensajeResultado = "Apunte eliminado."
-                    mostrarResultado = true
-                }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Eliminar", color = ColoresLexStudy.rojoError) }
             },
-            dismissButton = { TextButton(onClick = { apuntePendienteEliminar = null }) { Text("Cancelar") } }
+            dismissButton = {
+                TextButton(onClick = { apuntePendienteEliminar = null }) { Text("Cancelar") }
+            }
         )
     }
 }
 
 @Composable
 private fun coloresCamposEstudio() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.secondary,
-    focusedLabelColor = MaterialTheme.colorScheme.secondary,
-    cursorColor = MaterialTheme.colorScheme.secondary
+    focusedBorderColor = ColoresLexStudy.verdeTarjeta,
+    focusedLabelColor = ColoresLexStudy.verdeTarjeta,
+    cursorColor = ColoresLexStudy.verdeTarjeta,
+    focusedTextColor = ColoresLexStudy.texto,
+    unfocusedTextColor = ColoresLexStudy.texto
 )

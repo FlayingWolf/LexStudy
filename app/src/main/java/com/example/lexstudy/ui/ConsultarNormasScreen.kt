@@ -21,7 +21,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -40,10 +39,7 @@ import com.example.lexstudy.model.Ley
 import com.example.lexstudy.repository.LeyesDemo
 
 @Composable
-fun ConsultarNormasScreen(
-    onAbrirNorma: (Ley) -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun ConsultarNormasScreen(onAbrirNorma: (Ley) -> Unit) {
     var busqueda by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("Todas") }
     val categorias = listOf("Todas", "Civil", "Laboral", "Constitucional", "Penal")
@@ -57,22 +53,19 @@ fun ConsultarNormasScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(top = 18.dp)
+        modifier = Modifier.fillMaxSize().background(ColoresLexStudy.marfil).padding(top = 18.dp)
     ) {
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Text(
-                text = "Consultar normas",
+                "Consultar normas",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = ColoresLexStudy.verdePino
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                text = "Busca legislación por nombre, artículo o materia.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Busca legislación por nombre, artículo o materia.",
+                color = ColoresLexStudy.textoSecundario,
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(16.dp))
@@ -84,9 +77,11 @@ fun ConsultarNormasScreen(
                 label = { Text("Buscar por materia o artículo...") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.secondary,
-                    focusedLabelColor = MaterialTheme.colorScheme.secondary,
-                    cursorColor = MaterialTheme.colorScheme.secondary
+                    focusedBorderColor = ColoresLexStudy.verdePinoMedio,
+                    focusedLabelColor = ColoresLexStudy.verdePinoMedio,
+                    cursorColor = ColoresLexStudy.verdePinoMedio,
+                    focusedTextColor = ColoresLexStudy.texto,
+                    unfocusedTextColor = ColoresLexStudy.texto
                 )
             )
             Spacer(Modifier.height(10.dp))
@@ -104,9 +99,9 @@ fun ConsultarNormasScreen(
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "${normasFiltradas.size} normas en el catálogo de demostración",
+                "${normasFiltradas.size} normas en el catálogo de demostración",
                 fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = ColoresLexStudy.textoSecundario
             )
         }
 
@@ -119,37 +114,37 @@ fun ConsultarNormasScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { onAbrirNorma(ley) },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = ColoresLexStudy.blanco),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = ley.materia.uppercase(),
-                                color = MaterialTheme.colorScheme.secondary,
+                                ley.materia.uppercase(),
+                                color = ColoresLexStudy.verdePinoMedio,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.weight(1f))
                             Text(
-                                text = "REFERENCIA",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                "REFERENCIA",
+                                color = ColoresLexStudy.textoSecundario,
                                 fontSize = 9.sp
                             )
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = ley.nombre,
-                            color = MaterialTheme.colorScheme.primary,
+                            ley.nombre,
+                            color = ColoresLexStudy.verdePino,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 17.sp
                         )
                         Spacer(Modifier.height(3.dp))
-                        Text(ley.articulo, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                        Text(ley.articulo, color = ColoresLexStudy.texto, fontSize = 13.sp)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = ley.resumen,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ley.resumen,
+                            color = ColoresLexStudy.textoSecundario,
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
                             maxLines = 3
@@ -157,13 +152,13 @@ fun ConsultarNormasScreen(
                         Spacer(Modifier.height(9.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Abrir ficha de estudio y apuntes",
-                                color = MaterialTheme.colorScheme.secondary,
+                                "Abrir ficha de estudio",
+                                color = ColoresLexStudy.verdePinoMedio,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text("→", color = MaterialTheme.colorScheme.secondary)
+                            Text("→", color = ColoresLexStudy.verdePinoMedio)
                         }
                     }
                 }
@@ -171,16 +166,16 @@ fun ConsultarNormasScreen(
             if (normasFiltradas.isEmpty()) {
                 item {
                     Text(
-                        text = "No se encontraron normas con esos filtros.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        "No se encontraron normas con esos filtros.",
+                        color = ColoresLexStudy.textoSecundario,
                         modifier = Modifier.padding(vertical = 20.dp)
                     )
                 }
             }
             item {
                 Text(
-                    text = "Contenido sintético para evaluación académica. Verifica siempre el texto vigente en LeyChile, Biblioteca del Congreso Nacional.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "Contenido sintético para evaluación académica. Verifica siempre el texto vigente en LeyChile, Biblioteca del Congreso Nacional.",
+                    color = ColoresLexStudy.textoSecundario,
                     fontSize = 10.sp,
                     lineHeight = 14.sp,
                     modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)

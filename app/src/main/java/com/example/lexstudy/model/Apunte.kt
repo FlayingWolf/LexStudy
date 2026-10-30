@@ -1,10 +1,9 @@
 package com.example.lexstudy.model
 
-import java.util.UUID
-
+/** Apunte de estudio asociado a un usuario; en esta etapa vive solo en memoria. */
 data class Apunte(
-    val id: String = UUID.randomUUID().toString(),
-    val usuarioCorreo: String,
+    val id: Long = 0,
+    val usuarioId: Long,
     val leyId: String,
     val nombreLey: String,
     val titulo: String,
