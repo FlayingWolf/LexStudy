@@ -1,71 +1,63 @@
 package com.example.lexstudy.repository
 
 import com.example.lexstudy.model.Apunte
+import com.example.lexstudy.model.ApunteDao
 import com.example.lexstudy.model.Ley
 import com.example.lexstudy.model.MapaConceptual
+import com.example.lexstudy.model.MapaConceptualDao
 import com.example.lexstudy.model.Usuario
+import com.example.lexstudy.model.UsuarioDao
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * Repositorio en memoria para la etapa 09.
- * La interfaz y las operaciones son las del proyecto final, pero no se utiliza Room.
- * Los registros se reinician al cerrar el proceso de la aplicación.
- */
-class LexStudyRepository {
-    private val lock = Any()
-    private val siguienteUsuarioId = AtomicLong(1)
-    private val siguienteApunteId = AtomicLong(1)
-    private val siguienteMapaId = AtomicLong(1)
-    private val usuarios = linkedMapOf<Long, Usuario>()
-    private val apuntes = mutableMapOf<Long, MutableStateFlow<List<Apunte>>>()
-    private val mapas = mutableMapOf<Long, MutableStateFlow<List<MapaConceptual>>>()
+/** Coordina el acceso a Room y expone operaciones para las capas ViewModel. */
+class LexStudyRepository(
+    private val usuarioDao: UsuarioDao,
+    private val apunteDao: ApunteDao,
+    private val mapaDao: MapaConceptualDao
+) {
+    suspend fun registrarUsuario(nombre: String, correo: String, clave: String): Usuario? {
+        if (usuarioDao.buscarPorCorreo(correo) != null) return null
 
-    suspend fun registrarUsuario(nombre: String, correo: String, clave: String): Usuario? = synchronized(lock) {
-        val correoNormalizado = correo.trim().lowercase()
-        if (usuarios.values.any { it.correo.equals(correoNormalizado, ignoreCase = true) }) return@synchronized null
         val salt = generarSalt()
-        val usuario = Usuario(
-            id = siguienteUsuarioId.getAndIncrement(),
+        val usuarioSinId = Usuario(
             nombre = nombre.trim(),
-            correo = correoNormalizado,
+            correo = correo.trim().lowercase(),
             saltClave = salt,
             hashClave = calcularHash(clave, salt)
         )
-        usuarios[usuario.id] = usuario
-        usuario
+        val id = usuarioDao.insertar(usuarioSinId)
+        return usuarioSinId.copy(id = id)
     }
 
-    suspend fun obtenerUsuarioPorId(usuarioId: Long): Usuario? = synchronized(lock) { usuarios[usuarioId] }
+    suspend fun obtenerUsuarioPorId(usuarioId: Long): Usuario? =
+        usuarioDao.buscarPorId(usuarioId)
 
-    suspend fun autenticar(correo: String, clave: String): Usuario? = synchronized(lock) {
-        val usuario = usuarios.values.firstOrNull { it.correo.equals(correo.trim(), ignoreCase = true) } ?: return@synchronized null
+    suspend fun autenticar(correo: String, clave: String): Usuario? {
+        val usuario = usuarioDao.buscarPorCorreo(correo.trim().lowercase()) ?: return null
         val hashIngresado = calcularHash(clave, usuario.saltClave)
-        usuario.takeIf { hashIngresado == it.hashClave }
+        return usuario.takeIf { hashIngresado == it.hashClave }
     }
 
-    suspend fun cambiarContrasena(usuarioId: Long, claveActual: String, nuevaClave: String): Boolean = synchronized(lock) {
-        val usuario = usuarios[usuarioId] ?: return@synchronized false
-        if (calcularHash(claveActual, usuario.saltClave) != usuario.hashClave) return@synchronized false
+    /** Verifica la contraseña actual y reemplaza sus credenciales usando un salt nuevo. */
+    suspend fun cambiarContrasena(
+        usuarioId: Long,
+        claveActual: String,
+        nuevaClave: String
+    ): Boolean {
+        val usuario = usuarioDao.buscarPorId(usuarioId) ?: return false
+        val hashActual = calcularHash(claveActual, usuario.saltClave)
+        if (hashActual != usuario.hashClave) return false
+
         val nuevoSalt = generarSalt()
-        val actualizado = usuario.copy(saltClave = nuevoSalt, hashClave = calcularHash(nuevaClave, nuevoSalt))
-        usuarios[usuarioId] = actualizado
-        true
+        val nuevoHash = calcularHash(nuevaClave, nuevoSalt)
+        usuarioDao.actualizarCredenciales(usuarioId, nuevoSalt, nuevoHash)
+        return true
     }
 
-    suspend fun actualizarFotoPerfilPath(usuarioId: Long, ruta: String?): Usuario? = synchronized(lock) {
-        val usuario = usuarios[usuarioId] ?: return@synchronized null
-        val actualizado = usuario.copy(fotoPerfilPath = ruta)
-        usuarios[usuarioId] = actualizado
-        actualizado
-    }
-
-    fun observarApuntes(usuarioId: Long): Flow<List<Apunte>> = synchronized(lock) {
-        apuntes.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }
-    }
+    fun observarApuntes(usuarioId: Long): Flow<List<Apunte>> =
+        apunteDao.observarPorUsuario(usuarioId)
 
     suspend fun guardarApunte(
         usuarioId: Long,
@@ -75,34 +67,25 @@ class LexStudyRepository {
         archivoPdfUri: String?,
         apunteId: Long? = null
     ) {
-        synchronized(lock) {
-            val flujo = apuntes.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }
-            val id = apunteId ?: siguienteApunteId.getAndIncrement()
-            val apunte = Apunte(
-                id = id,
-                usuarioId = usuarioId,
-                leyId = ley.id,
-                nombreLey = ley.nombre,
-                titulo = titulo.trim(),
-                contenido = contenido.trim(),
-                archivoPdfUri = archivoPdfUri,
-                actualizadoEn = System.currentTimeMillis()
-            )
-            flujo.value = (flujo.value.filterNot { it.id == id } + apunte).sortedByDescending { it.actualizadoEn }
-        }
+        val apunte = Apunte(
+            id = apunteId ?: 0,
+            usuarioId = usuarioId,
+            leyId = ley.id,
+            nombreLey = ley.nombre,
+            titulo = titulo.trim(),
+            contenido = contenido.trim(),
+            archivoPdfUri = archivoPdfUri,
+            actualizadoEn = System.currentTimeMillis()
+        )
+        if (apunteId == null) apunteDao.insertar(apunte) else apunteDao.actualizar(apunte)
     }
 
     suspend fun eliminarApunte(apunteId: Long, usuarioId: Long) {
-        synchronized(lock) {
-            apuntes.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }.let { flujo ->
-                flujo.value = flujo.value.filterNot { it.id == apunteId && it.usuarioId == usuarioId }
-            }
-        }
+        apunteDao.eliminar(apunteId, usuarioId)
     }
 
-    fun observarMapas(usuarioId: Long): Flow<List<MapaConceptual>> = synchronized(lock) {
-        mapas.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }
-    }
+    fun observarMapas(usuarioId: Long): Flow<List<MapaConceptual>> =
+        mapaDao.observarPorUsuario(usuarioId)
 
     suspend fun guardarMapa(
         usuarioId: Long,
@@ -111,26 +94,19 @@ class LexStudyRepository {
         conceptoUno: String,
         conceptoDos: String
     ) {
-        synchronized(lock) {
-            val flujo = mapas.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }
-            val mapa = MapaConceptual(
-                id = siguienteMapaId.getAndIncrement(),
+        mapaDao.insertar(
+            MapaConceptual(
                 usuarioId = usuarioId,
                 titulo = titulo.trim(),
                 conceptoCentral = conceptoCentral.trim(),
                 conceptoRelacionadoUno = conceptoUno.trim(),
                 conceptoRelacionadoDos = conceptoDos.trim()
             )
-            flujo.value = listOf(mapa) + flujo.value
-        }
+        )
     }
 
     suspend fun eliminarMapa(mapaId: Long, usuarioId: Long) {
-        synchronized(lock) {
-            mapas.getOrPut(usuarioId) { MutableStateFlow(emptyList()) }.let { flujo ->
-                flujo.value = flujo.value.filterNot { it.id == mapaId && it.usuarioId == usuarioId }
-            }
-        }
+        mapaDao.eliminar(mapaId, usuarioId)
     }
 
     private fun generarSalt(): String {

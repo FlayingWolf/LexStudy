@@ -1,11 +1,20 @@
 package com.example.lexstudy.model
 
-/** Usuario local de la etapa 09. Esta etapa mantiene datos solo en memoria. */
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+/** Usuario local de LexStudy. La contraseña nunca se almacena en texto plano. */
+@Entity(
+    tableName = "usuarios",
+    indices = [Index(value = ["correo"], unique = true)]
+)
 data class Usuario(
-    val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val nombre: String,
     val correo: String,
     val saltClave: String,
     val hashClave: String,
+    /** Ruta privada en el almacenamiento interno de la foto de perfil, si existe. */
     val fotoPerfilPath: String? = null
 )

@@ -1,16 +1,21 @@
 package com.example.lexstudy.repository
 
-/** Sesión temporal de la etapa 09. No se guarda en almacenamiento persistente. */
-class SesionRepository {
-    @Volatile private var usuarioIdActivo: Long? = null
+import com.example.lexstudy.model.Sesion
+import com.example.lexstudy.model.SesionDao
 
+/**
+ * Repositorio de sesión siguiendo el patrón del proyecto base del profesor:
+ * DAO -> Repository -> ViewModel.
+ */
+class SesionRepository(private val sesionDao: SesionDao) {
     suspend fun guardarSesion(usuarioId: Long) {
-        usuarioIdActivo = usuarioId
+        sesionDao.guardarSesion(Sesion(usuarioId = usuarioId))
     }
 
-    suspend fun obtenerUsuarioIdActivo(): Long? = usuarioIdActivo
+    suspend fun obtenerUsuarioIdActivo(): Long? =
+        sesionDao.obtenerSesionActiva()?.usuarioId
 
     suspend fun cerrarSesion() {
-        usuarioIdActivo = null
+        sesionDao.limpiarSesion()
     }
 }

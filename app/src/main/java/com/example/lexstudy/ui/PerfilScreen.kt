@@ -273,7 +273,7 @@ fun PerfilScreen(
         }
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "En esta etapa, la cuenta y los datos de estudio se reinician al terminar la aplicación. La persistencia se incorporará en el proyecto final.",
+            text = "Tu foto se guarda en este dispositivo y se mantiene al cerrar y volver a abrir LexStudy.",
             color = ColoresLexStudy.textoSecundario,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center
