@@ -166,11 +166,12 @@ private fun NavegacionPrincipal(
             modifier = Modifier.padding(paddingInterno)
         ) {
             composable("consultar") {
-                ConsultarNormasScreen(onAbrirNorma = { ley ->
+                ConsultarNormasScreen(onBiblioteca = { navController.navigate("biblioteca") }, onAbrirNorma = { ley ->
                     studyViewModel.seleccionarLey(ley)
                     navController.navigate("detalle_norma") { launchSingleTop = true }
                 })
             }
+            composable("biblioteca") { BibliotecaScreen { navController.popBackStack() } }
             composable("estudiar") {
                 EstudiarOrganizarScreen(usuarioId = usuarioId, viewModel = studyViewModel)
             }

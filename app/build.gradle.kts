@@ -4,6 +4,11 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val apiBase = providers.gradleProperty("LEXSTUDY_API_URL").orElse("").get().trim()
+require(apiBase.isEmpty() || (apiBase.startsWith("https://") && apiBase.endsWith("/") && !apiBase.contains("workspace:"))) {
+    "Usa la URL HTTPS del grupo de API de LexStudy, terminada en /."
+}
+
 android {
     namespace = "com.example.lexstudy"
     compileSdk {
@@ -11,6 +16,7 @@ android {
     }
 
     defaultConfig {
+        buildConfigField("String", "API_URL", "\"" + apiBase + "\"")
         applicationId = "com.example.lexstudy"
         minSdk = 37
         targetSdk = 37
@@ -21,6 +27,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (apiBase.isEmpty()) {
+                buildConfigField("String", "API_URL", "\"http://127.0.0.1:8765/\"")
+            }
+        }
         release {
             optimization {
                 enable = false
@@ -33,10 +44,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
