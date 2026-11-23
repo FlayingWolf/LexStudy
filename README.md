@@ -174,13 +174,13 @@ Cada GET devuelve un arreglo JSON de objetos con campos de texto `titulo` y `det
 
 ### Probar inmediatamente con el emulador
 
-En una terminal del proyecto inicia `python backend/servidor.py` (Python 3.9+). En otra terminal ejecuta `adb reverse tcp:8765 tcp:8765` con el emulador o teléfono conectado. En Windows, adb.exe está en la carpeta platform-tools del Android SDK. Ejecuta la variante debug y abre Biblioteca en línea. Si no has configurado Xano, debug usa el servidor del computador. Las consultas leen las seis colecciones CSV y las sugerencias se guardan en SQLite junto al servidor. Repite adb reverse si desconectas el dispositivo.
+En una terminal del proyecto inicia `python backend/servidor.py` (Python 3.9+). En otra terminal ejecuta `adb reverse tcp:8765 tcp:8765` con el emulador o teléfono conectado. En Windows, adb.exe está en la carpeta platform-tools del Android SDK. Ejecuta la variante debug y abre Biblioteca en línea. Si no has configurado Xano, la aplicación usa el servidor del computador. Las consultas leen las seis colecciones CSV y las sugerencias se guardan en SQLite junto al servidor. Repite adb reverse si desconectas el dispositivo.
 
 ### Publicar en Xano
 
 1. Crea un grupo API propio llamado LexStudy. Importa cada CSV de `backend/xano` en una tabla con el mismo nombre del archivo, sin extensión. Conserva `titulo` y `detalle` como texto. Crea además la tabla `sugerencias` con ID automático y campo de texto `texto`.
 2. Publica en ese grupo los seis GET del cuadro, cada uno con una consulta de todos los registros de su tabla y respuesta de tipo lista sin paginación. Para el POST define la entrada `texto`, recorta espacios, valida su longitud, agrega el registro y devuelve el objeto creado. Expón únicamente las siete operaciones indicadas.
-3. Copia la URL base **del grupo publicado** y agrega en tu archivo de usuario `~/.gradle/gradle.properties` (en Windows, `%USERPROFILE%\.gradle\gradle.properties`) la línea `LEXSTUDY_API_URL=https://TU-INSTANCIA.xano.io/api:TU-GRUPO/`. Sustituye los dos marcadores y conserva la barra final. El enlace Swagger de todo el workspace muestra varios grupos y sirve para consultarlos.
+3. Puedes pegar la URL del grupo directamente en **Biblioteca en línea → Configurar servidor**. Para preconfigurar futuras instalaciones, copia la URL base **del grupo publicado** y agrega en tu archivo de usuario `~/.gradle/gradle.properties` (en Windows, `%USERPROFILE%\.gradle\gradle.properties`) la línea `LEXSTUDY_API_URL=https://TU-INSTANCIA.xano.io/api:TU-GRUPO/`. Sustituye los dos marcadores y conserva la barra final. El enlace Swagger de todo el workspace muestra varios grupos y sirve para consultarlos.
 4. Sincroniza y recompila. Abre las seis secciones y envía una sugerencia. Comprueba que el ID de confirmación coincide con el guardado en Xano.
 
 ## Pruebas unitarias
@@ -190,6 +190,8 @@ En Android Studio, abre `app/src/test/java/com/example/lexstudy/BibliotecaReposi
 ## APK firmado de entrega
 
 Configura la URL HTTPS de producción y prueba la biblioteca con ella primero. En Android Studio elige **Build → Generate Signed App Bundle or APK → APK**, módulo **app**, selecciona tu almacén de claves o créalo fuera del repositorio, escoge **release** y genera el archivo. Abre la carpeta indicada por el asistente. Verifica con `apksigner verify --verbose --print-certs app-release.apk` desde Android SDK Build Tools y prueba la instalación en un equipo con API 37 o superior. El launcher utiliza el libro del logotipo de LexStudy. Guarda el keystore y su contraseña de forma privada para poder firmar futuras actualizaciones.
+
+El flujo de GitHub Actions también compila release y firma un APK de evaluación con una clave temporal distinta por ejecución. Su artefacto se llama `LexStudy-release`. Para actualizar una instalación conservando sus datos, usa tu clave estable desde Android Studio.
 
 ## Seguimiento
 

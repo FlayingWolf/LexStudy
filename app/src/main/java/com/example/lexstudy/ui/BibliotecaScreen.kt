@@ -17,18 +17,42 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun BibliotecaScreen(volver: () -> Unit) {
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val preferencias = remember(contexto) { contexto.getSharedPreferences("biblioteca", 0) }
+    var base by remember { mutableStateOf(preferencias.getString("url", null) ?: com.example.lexstudy.BuildConfig.API_URL) }
+    var editar by rememberSaveable { mutableStateOf(false) }
+    var nuevaUrl by rememberSaveable { mutableStateOf(base) }
+    var errorUrl by remember { mutableStateOf("") }
+    if (editar) {
+        AlertDialog(onDismissRequest = { editar = false }, title = { Text("Servidor de la biblioteca") },
+            text = { Column {
+                OutlinedTextField(value = nuevaUrl, onValueChange = { nuevaUrl = it }, singleLine = true,
+                    label = { Text("URL del grupo de Xano") })
+                Text(errorUrl.ifEmpty { "Deja el campo vacío para usar el servidor local por USB." })
+            } },
+            confirmButton = { TextButton(onClick = {
+                try {
+                    BibliotecaCliente.crear(nuevaUrl)
+                    base = nuevaUrl.trim()
+                    preferencias.edit().putString("url", base).apply()
+                    editar = false
+                } catch (e: Exception) { errorUrl = "Revisa la URL del grupo de API." }
+            }) { Text("Guardar") } },
+            dismissButton = { TextButton(onClick = { editar = false }) { Text("Cancelar") } })
+    }
+    val repositorio = remember(base) { BibliotecaRepository(BibliotecaCliente.crear(base)) }
     var seccion by rememberSaveable { mutableStateOf(Seccion.GLOSARIO) }
     var intento by remember { mutableIntStateOf(0) }
-    var fichas by remember(seccion, intento) { mutableStateOf(emptyList<Ficha>()) }
-    var estado by remember(seccion, intento) { mutableStateOf("Cargando…") }
+    var fichas by remember(base, seccion, intento) { mutableStateOf(emptyList<Ficha>()) }
+    var estado by remember(base, seccion, intento) { mutableStateOf("Cargando…") }
     var texto by rememberSaveable { mutableStateOf("") }
     var aviso by rememberSaveable { mutableStateOf("") }
     var enviando by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(seccion, intento) {
+    LaunchedEffect(base, seccion, intento) {
         try {
-            fichas = BibliotecaRepository(BibliotecaCliente.api).consultar(seccion)
+            fichas = repositorio.consultar(seccion)
             estado = if (fichas.isEmpty()) "Todavía no hay fichas." else ""
         } catch (e: CancellationException) {
             throw e
@@ -41,6 +65,7 @@ fun BibliotecaScreen(volver: () -> Unit) {
         item {
             TextButton(onClick = volver) { Text("Volver a normas") }
             Text("Biblioteca en línea", style = MaterialTheme.typography.headlineSmall)
+            TextButton(enabled = !enviando, onClick = { nuevaUrl = base; errorUrl = ""; editar = true }) { Text("Configurar servidor") }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Seccion.entries.forEach {
                     FilterChip(selected = it == seccion, onClick = { seccion = it }, label = { Text(it.etiqueta) })
@@ -64,7 +89,7 @@ fun BibliotecaScreen(volver: () -> Unit) {
                 enviando = true
                 scope.launch {
                     try {
-                        val id = BibliotecaRepository(BibliotecaCliente.api).sugerir(texto)
+                        val id = repositorio.sugerir(texto)
                         texto = ""
                         aviso = "Sugerencia recibida (#$id)."
                     } catch (e: CancellationException) {

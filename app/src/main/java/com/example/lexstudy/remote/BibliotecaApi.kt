@@ -1,6 +1,6 @@
 package com.example.lexstudy.remote
 
-import com.example.lexstudy.BuildConfig
+import java.net.URI
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -22,9 +22,13 @@ interface BibliotecaApi {
 }
 
 object BibliotecaCliente {
-    val api: BibliotecaApi by lazy {
-        check(BuildConfig.API_URL.isNotBlank()) { "Configura LEXSTUDY_API_URL en gradle.properties y recompila." }
-        Retrofit.Builder().baseUrl(BuildConfig.API_URL)
+    fun crear(url: String): BibliotecaApi {
+        val base = url.trim().ifEmpty { "http://127.0.0.1:8765/" }
+        val uri = URI(base)
+        require(base == "http://127.0.0.1:8765/" || (uri.scheme == "https" &&
+            uri.host != null && uri.userInfo == null && uri.query == null && uri.fragment == null &&
+            !uri.path.contains("workspace:"))) { "Introduce la URL HTTPS del grupo de API." }
+        return Retrofit.Builder().baseUrl(base.trimEnd('/') + "/")
             .addConverterFactory(GsonConverterFactory.create()).build().create(BibliotecaApi::class.java)
     }
 }
