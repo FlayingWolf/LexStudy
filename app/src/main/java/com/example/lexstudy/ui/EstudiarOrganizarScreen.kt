@@ -46,7 +46,7 @@ fun EstudiarOrganizarScreen(
     usuarioId: Long,
     viewModel: LexStudyViewModel
 ) {
-    val ley = viewModel.leySeleccionada
+    val ley = viewModel.estadoPantalla.leySeleccionada
     val contexto = LocalContext.current
     var tamanoTexto by remember { mutableStateOf(16) }
     var titulo by remember(ley.id) { mutableStateOf("") }
@@ -73,7 +73,7 @@ fun EstudiarOrganizarScreen(
         }
     }
 
-    val apuntesDeEstaLey = viewModel.apuntes.filter { it.leyId == ley.id }
+    val apuntesDeEstaLey = viewModel.estadoPantalla.apuntes.filter { it.leyId == ley.id }
 
     Column(
         modifier = Modifier
@@ -166,7 +166,7 @@ fun EstudiarOrganizarScreen(
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
-                viewModel.guardarApunte(
+                viewModel.acciones.guardarApunte(
                     usuarioId = usuarioId,
                     titulo = titulo,
                     contenido = contenido,
@@ -270,7 +270,7 @@ fun EstudiarOrganizarScreen(
             text = { Text("¿Quieres eliminar ‘${apunte.titulo}’? Esta acción no se puede deshacer.") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.eliminarApunte(usuarioId, apunte.id) { correcto ->
+                    viewModel.acciones.eliminarApunte(usuarioId, apunte.id) { correcto ->
                         if (correcto && apunteEnEdicionId == apunte.id) {
                             titulo = ""
                             contenido = ""

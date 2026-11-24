@@ -57,11 +57,11 @@ fun PerfilScreen(
     var confirmarNuevaClave by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        viewModel.limpiarMensajeCambioContrasena()
+        viewModel.acciones.limpiarMensajeCambioContrasena()
     }
 
-    LaunchedEffect(viewModel.cambioContrasenaCorrecto) {
-        if (viewModel.cambioContrasenaCorrecto) {
+    LaunchedEffect(viewModel.estadoPantalla.cambioContrasenaCorrecto) {
+        if (viewModel.estadoPantalla.cambioContrasenaCorrecto) {
             claveActual = ""
             nuevaClave = ""
             confirmarNuevaClave = ""
@@ -82,8 +82,8 @@ fun PerfilScreen(
     ) { imagenCapturada ->
         if (imagenCapturada != null) {
             mensajeCamara = ""
-            viewModel.limpiarMensajeFotoPerfil()
-            viewModel.actualizarFotoPerfil(imagenCapturada)
+            viewModel.acciones.limpiarMensajeFotoPerfil()
+            viewModel.acciones.actualizarFotoPerfil(imagenCapturada)
         } else {
             mensajeCamara = "No se capturó ninguna fotografía."
         }
@@ -139,12 +139,12 @@ fun PerfilScreen(
 
         OutlinedButton(
             onClick = { lanzadorCamara.launch(null) },
-            enabled = !viewModel.estaGuardandoFotoPerfil
+            enabled = !viewModel.estadoPantalla.estaGuardandoFotoPerfil
         ) {
             Text("📷  Cambiar foto con la cámara")
         }
 
-        if (viewModel.estaGuardandoFotoPerfil) {
+        if (viewModel.estadoPantalla.estaGuardandoFotoPerfil) {
             Spacer(Modifier.height(8.dp))
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
@@ -154,7 +154,7 @@ fun PerfilScreen(
             Text("Guardando fotografía…", color = ColoresLexStudy.textoSecundario)
         }
 
-        val mensaje = viewModel.mensajeFotoPerfil.ifBlank { mensajeCamara }
+        val mensaje = viewModel.estadoPantalla.mensajeFotoPerfil.ifBlank { mensajeCamara }
         if (mensaje.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -210,7 +210,7 @@ fun PerfilScreen(
                     label = { Text("Contraseña actual") },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
-                    enabled = !viewModel.estaCambiandoContrasena,
+                    enabled = !viewModel.estadoPantalla.estaCambiandoContrasena,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(10.dp))
@@ -221,7 +221,7 @@ fun PerfilScreen(
                     supportingText = { Text("Mínimo 6 caracteres") },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
-                    enabled = !viewModel.estaCambiandoContrasena,
+                    enabled = !viewModel.estadoPantalla.estaCambiandoContrasena,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(10.dp))
@@ -231,22 +231,22 @@ fun PerfilScreen(
                     label = { Text("Confirmar nueva contraseña") },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
-                    enabled = !viewModel.estaCambiandoContrasena,
+                    enabled = !viewModel.estadoPantalla.estaCambiandoContrasena,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(14.dp))
                 Button(
                     onClick = {
-                        viewModel.cambiarContrasena(
+                        viewModel.acciones.cambiarContrasena(
                             claveActual = claveActual,
                             nuevaClave = nuevaClave,
                             confirmarClave = confirmarNuevaClave
                         )
                     },
-                    enabled = !viewModel.estaCambiandoContrasena,
+                    enabled = !viewModel.estadoPantalla.estaCambiandoContrasena,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (viewModel.estaCambiandoContrasena) {
+                    if (viewModel.estadoPantalla.estaCambiandoContrasena) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp
@@ -257,11 +257,11 @@ fun PerfilScreen(
                         Text("Guardar nueva contraseña")
                     }
                 }
-                if (viewModel.mensajeCambioContrasena.isNotBlank()) {
+                if (viewModel.estadoPantalla.mensajeCambioContrasena.isNotBlank()) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        text = viewModel.mensajeCambioContrasena,
-                        color = if (viewModel.cambioContrasenaCorrecto) {
+                        text = viewModel.estadoPantalla.mensajeCambioContrasena,
+                        color = if (viewModel.estadoPantalla.cambioContrasenaCorrecto) {
                             ColoresLexStudy.verdePinoMedio
                         } else {
                             ColoresLexStudy.rojoError

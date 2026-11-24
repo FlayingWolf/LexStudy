@@ -1,0 +1,36 @@
+name: Verificar LexStudy
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0"'
+      - run: bash gradlew :app:testDebugUnitTest :app:assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: informe-junit
+          path: app/build/reports/tests/testDebugUnitTest
+
+      - name: Firmar APK académico y verificar certificado
+        shell: bash
+        run: |
+          set -eu
+          export LEX_PASS="$(openssl rand -hex 32)"
+          keytool -genkeypair -alias evaluacion -keyalg RSA -keysize 3072 -validity 3650 -dname "CN=LexStudy Evaluacion" -keystore "$RUNNER_TEMP/evaluacion.p12" -storepass:env LEX_PASS
+          signer="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)"
+          "$signer" sign --ks "$RUNNER_TEMP/evaluacion.p12" --ks-pass env:LEX_PASS --out LexStudy-release.apk app/build/outputs/apk/release/app-release-unsigned.apk
+          "$signer" verify --verbose --print-certs LexStudy-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LexStudy-release
+          path: LexStudy-release.apk

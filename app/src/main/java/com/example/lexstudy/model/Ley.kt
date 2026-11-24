@@ -8,6 +8,5 @@ data class Ley(
     val materia: String,
     val resumen: String,
     val referenciaOficial: String,
-    val ultimaReferencia: String,
-    val esVigenteEnCatalogo: Boolean = true
+    val ultimaReferencia: String
 )

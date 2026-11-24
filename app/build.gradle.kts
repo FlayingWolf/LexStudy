@@ -11,8 +11,9 @@ android {
     }
 
     defaultConfig {
+        buildConfigField("String", "API_URL", "\"https://x8ki-letl-twmt.n7.xano.io/api:lexstudy/\"")
         applicationId = "com.example.lexstudy"
-        minSdk = 37
+        minSdk = 30
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -33,10 +34,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

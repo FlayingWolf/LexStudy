@@ -39,7 +39,7 @@ import com.example.lexstudy.model.Ley
 import com.example.lexstudy.repository.LeyesDemo
 
 @Composable
-fun ConsultarNormasScreen(onAbrirNorma: (Ley) -> Unit) {
+fun ConsultarNormasScreen(onBiblioteca: () -> Unit, onAbrirNorma: (Ley) -> Unit) {
     var busqueda by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("Todas") }
     val categorias = listOf("Todas", "Civil", "Laboral", "Constitucional", "Penal")
@@ -69,6 +69,7 @@ fun ConsultarNormasScreen(onAbrirNorma: (Ley) -> Unit) {
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(16.dp))
+            androidx.compose.material3.TextButton(onClick = onBiblioteca) { Text("Biblioteca en línea") }
             OutlinedTextField(
                 value = busqueda,
                 onValueChange = { busqueda = it },

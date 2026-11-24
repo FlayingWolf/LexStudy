@@ -87,13 +87,13 @@ fun MapasConceptualesScreen(
         }
 
         Spacer(Modifier.height(22.dp))
-        Text("Mis mapas · ${viewModel.mapas.size}", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = ColoresLexStudy.verdePino)
+        Text("Mis mapas · ${viewModel.estadoPantalla.mapas.size}", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = ColoresLexStudy.verdePino)
         Spacer(Modifier.height(10.dp))
 
-        if (viewModel.mapas.isEmpty()) {
+        if (viewModel.estadoPantalla.mapas.isEmpty()) {
             Text("Todavía no has guardado mapas. Crea el primero con el botón Manual.", color = ColoresLexStudy.textoSecundario, fontSize = 12.sp)
         } else {
-            viewModel.mapas.forEach { mapa ->
+            viewModel.estadoPantalla.mapas.forEach { mapa ->
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                     shape = RoundedCornerShape(15.dp),
@@ -145,7 +145,7 @@ fun MapasConceptualesScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.guardarMapa(usuarioId, titulo, conceptoCentral, conceptoUno, conceptoDos) { correcto, respuesta ->
+                    viewModel.acciones.guardarMapa(usuarioId, titulo, conceptoCentral, conceptoUno, conceptoDos) { correcto, respuesta ->
                         esError = !correcto
                         mensaje = respuesta
                         mostrarMensaje = true
@@ -172,7 +172,7 @@ fun MapasConceptualesScreen(
             text = { Text("Para la evaluación se creará un ejemplo local sobre los elementos de un contrato. No se enviará contenido a una IA ni a un servicio externo.") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.guardarMapa(
+                    viewModel.acciones.guardarMapa(
                         usuarioId = usuarioId,
                         titulo = "Elementos de un contrato (demo)",
                         conceptoCentral = "Contrato",
@@ -208,7 +208,7 @@ fun MapasConceptualesScreen(
             text = { Text("¿Quieres eliminar el mapa ‘${mapa.titulo}’?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.eliminarMapa(usuarioId, mapa.id) { correcto ->
+                    viewModel.acciones.eliminarMapa(usuarioId, mapa.id) { correcto ->
                         esError = !correcto
                         mensaje = if (correcto) "Mapa eliminado." else "No se pudo eliminar el mapa."
                         mostrarMensaje = true

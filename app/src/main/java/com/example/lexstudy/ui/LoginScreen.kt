@@ -112,10 +112,10 @@ fun LoginScreen(viewModel: AuthViewModel) {
             )
         }
 
-        if (viewModel.mensajeError.isNotBlank()) {
+        if (viewModel.estadoPantalla.mensajeError.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
             Text(
-                text = viewModel.mensajeError,
+                text = viewModel.estadoPantalla.mensajeError,
                 modifier = Modifier.fillMaxWidth(),
                 color = ColoresLexStudy.rojoError,
                 fontSize = 13.sp
@@ -125,22 +125,22 @@ fun LoginScreen(viewModel: AuthViewModel) {
         Spacer(Modifier.height(22.dp))
         BotonCargando(
             texto = if (mostrarRegistro) "Registrar" else "Ingresar",
-            cargando = viewModel.estaCargando,
+            cargando = viewModel.estadoPantalla.estaCargando,
             onClick = {
                 if (mostrarRegistro) {
-                    viewModel.registrar(nombre, correo, clave, confirmarClave)
+                    viewModel.acciones.registrar(nombre, correo, clave, confirmarClave)
                 } else {
-                    viewModel.ingresar(correo, clave)
+                    viewModel.acciones.ingresar(correo, clave)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            habilitado = !viewModel.estaCargando
+            habilitado = !viewModel.estadoPantalla.estaCargando
         )
         Spacer(Modifier.height(8.dp))
         TextButton(
             onClick = {
                 mostrarRegistro = !mostrarRegistro
-                viewModel.limpiarErrorParaCambiarFormulario()
+                viewModel.acciones.limpiarErrorParaCambiarFormulario()
             }
         ) {
             Text(

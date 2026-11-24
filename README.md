@@ -65,15 +65,28 @@ com.example.lexstudy/
 │   ├── MapaConceptual.kt
 │   ├── MapaConceptualDao.kt
 │   ├── Sesion.kt
-│   └── SesionDao.kt
+│   ├── SesionDao.kt
+│   ├── Ley.kt
+│   └── Validaciones.kt
 ├── repository/
 │   ├── LexStudyRepository.kt
 │   ├── SesionRepository.kt
 │   ├── FotoPerfilRepository.kt
-│   └── LeyesDemo.kt
+│   ├── LeyesDemo.kt
+│   └── BibliotecaRepository.kt
+├── remote/
+│   └── BibliotecaApi.kt
+├── presentation/
+│   ├── AuthEstado.kt
+│   ├── AuthAcciones.kt
+│   ├── EstudioEstado.kt
+│   ├── EstudioAcciones.kt
+│   ├── BibliotecaEstado.kt
+│   └── BibliotecaAcciones.kt
 ├── ui/
 │   ├── AppNavigation.kt
 │   ├── LoginScreen.kt
+│   ├── BibliotecaScreen.kt
 │   ├── ConsultarNormasScreen.kt
 │   ├── EstudiarOrganizarScreen.kt
 │   ├── MapasConceptualesScreen.kt
@@ -83,14 +96,19 @@ com.example.lexstudy/
 │   └── theme/
 └── viewmodel/
     ├── AuthViewModel.kt
-    ├── LexStudyViewModel.kt
-    └── ViewModelFactories.kt
+    ├── BibliotecaViewModel.kt
+    └── LexStudyViewModel.kt
+
+factory/
+└── ViewModelFactories.kt
 ```
 
 - **`model/`** contiene las entidades de Room y sus DAO.
 - **`repository/`** concentra las operaciones de acceso a datos, sesión y fotografía de perfil.
 - **`ui/`** contiene las pantallas Compose, la navegación y los componentes visuales.
-- **`viewmodel/`** gestiona el estado de autenticación y las operaciones de estudio.
+- **`viewmodel/`** conserva las instancias de estado y acciones durante el ciclo de vida de la pantalla. Los tres ViewModels no declaran funciones propias. Las factories conservan `create()` por contrato de AndroidX.
+- **`presentation/`** separa los estados observables y las operaciones de presentación, utilizando el alcance de corrutinas del ViewModel.
+- **`remote/`** define los endpoints y el cliente Retrofit. Las validaciones de negocio están en `model/Validaciones.kt`.
 
 ## Persistencia de datos
 
@@ -154,9 +172,49 @@ El APK de depuración se genera normalmente en `app/build/outputs/apk/debug/app-
 - Los archivos PDF se seleccionan desde el dispositivo y la aplicación conserva la URI del documento adjunto.
 - La información de usuarios, apuntes, mapas y sesión se guarda localmente; no se comparte entre dispositivos mediante una cuenta en línea.
 
-## Pruebas
+## Arquitectura y datos
 
-El proyecto incluye las carpetas de pruebas unitarias (`app/src/test`) y pruebas instrumentadas (`app/src/androidTest`). Las pruebas incluidas actualmente son las pruebas base del proyecto Android; se recomienda ampliarlas con pruebas específicas para registro, autenticación, persistencia y navegación.
+El proyecto usa pantallas Compose, navegación, ViewModels y Room para usuarios, sesiones, apuntes y mapas. El perfil obtiene una miniatura de la cámara mediante `TakePicturePreview`. La pantalla de estudio usa `OpenDocument` para elegir PDF. La biblioteca consulta datos mediante Retrofit, corrutinas y Gson. El repositorio dirige la selección a su endpoint y valida las sugerencias. Solo el texto que el usuario envía desde ese formulario se transmite a la biblioteca.
+
+## Contrato de la biblioteca
+
+| Acción en la app | Método | Ruta |
+|---|---|---|
+| Abrir Glosario | GET | /glosario |
+| Abrir Materias | GET | /materias |
+| Abrir Fuentes | GET | /fuentes |
+| Abrir Ejercicios | GET | /ejercicios |
+| Abrir Técnicas | GET | /tecnicas |
+| Abrir Preguntas | GET | /preguntas |
+| Enviar sugerencia | POST | /sugerencias |
+
+Cada GET devuelve un arreglo JSON de objetos con campos de texto `titulo` y `detalle`. Una lista sin registros devuelve `[]`. El POST recibe por ejemplo `{"texto":"Interpretación de fuentes"}` y devuelve el registro creado con un `id` entero positivo. Se admiten entre 5 y 500 caracteres tras recortar espacios.
+
+### Probar la biblioteca
+
+La aplicación utiliza la URL de Xano incorporada en `app/build.gradle.kts`. Abre Biblioteca en línea en un dispositivo con conexión a Internet. El servidor Python de `backend` es una herramienta de desarrollo independiente.
+
+### Publicar en Xano
+
+1. Crea un grupo API propio llamado LexStudy. Importa cada CSV de `backend/xano` en una tabla con el mismo nombre del archivo, sin extensión. Conserva `titulo` y `detalle` como texto. Crea además la tabla `sugerencias` con ID automático y campo de texto `texto`.
+2. Publica en ese grupo los seis GET del cuadro, cada uno con una consulta de todos los registros de su tabla y respuesta de tipo lista sin paginación. Para el POST define la entrada `texto`, recorta espacios, valida su longitud, agrega el registro y devuelve el objeto creado. Expón únicamente las siete operaciones indicadas.
+3. La URL del grupo publicado está incorporada en `BuildConfig.API_URL`; no requiere configuración del usuario.
+4. Sincroniza y recompila. Abre las seis secciones y envía una sugerencia. Comprueba que el ID de confirmación coincide con el guardado en Xano.
+
+## Pruebas unitarias
+
+En Android Studio, abre `app/src/test/java/com/example/lexstudy/BibliotecaRepositoryTest.kt` y ejecuta la clase con el triángulo verde. También puedes usar `.\gradlew.bat :app:testDebugUnitTest` en Windows. Tres pruebas JUnit 4 verifican la selección de las seis colecciones, la limpieza y confirmación de una sugerencia y el rechazo de longitudes inválidas antes de llamar al servicio. Una API falsa permite ejecutarlas sin red ni emulador. El informe se genera en `app/build/reports/tests/testDebugUnitTest/index.html`.
+
+## APK firmado de entrega
+
+Configura la URL HTTPS de producción y prueba la biblioteca con ella primero. En Android Studio elige **Build → Generate Signed App Bundle or APK → APK**, módulo **app**, selecciona tu almacén de claves o créalo fuera del repositorio, escoge **release** y genera el archivo. Abre la carpeta indicada por el asistente. Verifica con `apksigner verify --verbose --print-certs app-release.apk` desde Android SDK Build Tools y prueba la instalación en un equipo con API 37 o superior. El launcher utiliza el libro del logotipo de LexStudy. Guarda el keystore y su contraseña de forma privada para poder firmar futuras actualizaciones.
+
+El flujo de GitHub Actions también compila release y firma un APK de evaluación con una clave temporal distinta por ejecución. Su artefacto se llama `LexStudy-release`. Para actualizar una instalación conservando sus datos, usa tu clave estable desde Android Studio.
+
+## Seguimiento
+
+[Tablero Trello de LexStudy](https://trello.com/b/5SmXPykU/lexstudy) · [Referencia de pruebas del profesor](https://github.com/amaurelia/pruebas-unitarias-kotlin)
+
 
 ## Identificador de aplicación
 
@@ -172,3 +230,4 @@ com.example.lexstudy
 ---
 
 Proyecto académico **LexStudy**.
+

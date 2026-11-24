@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -37,9 +36,9 @@ import com.example.lexstudy.repository.FotoPerfilRepository
 import com.example.lexstudy.repository.LexStudyRepository
 import com.example.lexstudy.repository.SesionRepository
 import com.example.lexstudy.viewmodel.AuthViewModel
-import com.example.lexstudy.viewmodel.AuthViewModelFactory
+import com.example.lexstudy.factory.AuthViewModelFactory
 import com.example.lexstudy.viewmodel.LexStudyViewModel
-import com.example.lexstudy.viewmodel.LexStudyViewModelFactory
+import com.example.lexstudy.factory.LexStudyViewModelFactory
 
 private data class ItemNavegacion(
     val ruta: String,
@@ -59,19 +58,19 @@ fun LexStudyApp(
         }
     )
     val studyViewModel: LexStudyViewModel = viewModel(factory = remember(repository) { LexStudyViewModelFactory(repository) })
-    val usuario = authViewModel.usuarioActual
+    val usuario = authViewModel.estadoPantalla.usuarioActual
 
-    LaunchedEffect(usuario?.id, authViewModel.estaRestaurandoSesion) {
-        if (!authViewModel.estaRestaurandoSesion) {
+    LaunchedEffect(usuario?.id, authViewModel.estadoPantalla.estaRestaurandoSesion) {
+        if (!authViewModel.estadoPantalla.estaRestaurandoSesion) {
             if (usuario == null) {
-                studyViewModel.limpiarDatosDeSesion()
+                studyViewModel.acciones.limpiarDatosDeSesion()
             } else {
-                studyViewModel.cargarDatos(usuario.id)
+                studyViewModel.acciones.cargarDatos(usuario.id)
             }
         }
     }
 
-    if (authViewModel.estaRestaurandoSesion) {
+    if (authViewModel.estadoPantalla.estaRestaurandoSesion) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -166,11 +165,12 @@ private fun NavegacionPrincipal(
             modifier = Modifier.padding(paddingInterno)
         ) {
             composable("consultar") {
-                ConsultarNormasScreen(onAbrirNorma = { ley ->
-                    studyViewModel.seleccionarLey(ley)
+                ConsultarNormasScreen(onBiblioteca = { navController.navigate("biblioteca") }, onAbrirNorma = { ley ->
+                    studyViewModel.acciones.seleccionarLey(ley)
                     navController.navigate("detalle_norma") { launchSingleTop = true }
                 })
             }
+            composable("biblioteca") { BibliotecaScreen { navController.popBackStack() } }
             composable("estudiar") {
                 EstudiarOrganizarScreen(usuarioId = usuarioId, viewModel = studyViewModel)
             }
@@ -194,7 +194,7 @@ private fun NavegacionPrincipal(
             confirmButton = {
                 TextButton(onClick = {
                     mostrarConfirmacionSalida = false
-                    authViewModel.cerrarSesion()
+                    authViewModel.acciones.cerrarSesion()
                 }) { Text("Cerrar sesión") }
             },
             dismissButton = {

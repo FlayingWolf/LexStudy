@@ -47,5 +47,4 @@ object LeyesDemo {
         )
     )
 
-    fun buscarLey(id: String): Ley = normas.firstOrNull { it.id == id } ?: normas.first()
 }
